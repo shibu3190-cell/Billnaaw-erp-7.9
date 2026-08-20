@@ -1,0 +1,29 @@
+Billnaw — billing & inventory
+=============================
+
+INSTALL
+  1. https://app.netlify.com/drop  -> drag THIS FOLDER on
+  2. Open the https:// link it gives you
+       Android      : Chrome menu -> Install app
+       Windows/Mac  : install icon in the address bar
+       Anywhere     : the "Install Billnaw" button in the app
+  3. Settings -> Data & backup -> APP HEALTH
+     Read it. It tells you whether the app is really installed,
+     whether the offline engine is running, and how many files
+     are cached. If "Offline engine" is not "active", reload once
+     while online.
+
+FIXED IN THIS BUILD
+  * Sales "Today" now filters the BILL LIST, not just the totals.
+  * Serial / IMEI numbers can be entered when you add stock,
+    one per line. The quantity follows the list and duplicates
+    are flagged.
+  * Call and WhatsApp work for any number format (+91, 0-prefix,
+    spaces, brackets). A number that is not 10 digits is shown
+    as unusable instead of opening a dead chat.
+  * Editing a bill is reversible. The original is held and a
+    "Cancel edit" banner restores it with stock and khata intact.
+  * "A new version is ready" appears when an update is waiting,
+    instead of the app silently staying old.
+
+Settings -> Backup, weekly, and move the file OFF the device.

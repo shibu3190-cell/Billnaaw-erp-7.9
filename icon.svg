@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Billnaw">
+  <defs>
+    <linearGradient id="c" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c9a17a"/><stop offset=".5" stop-color="#9f754f"/>
+      <stop offset="1" stop-color="#7d5735"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#16314c"/>
+  <circle cx="256" cy="256" r="176" fill="#fff"/>
+  <!-- B stem and bowls -->
+  <path d="M168 168v176" stroke="url(#c)" stroke-width="30" stroke-linecap="round" fill="none"/>
+  <path d="M168 168h44a44 44 0 0 1 0 88h-44" stroke="url(#c)" stroke-width="30" fill="none" stroke-linecap="round"/>
+  <path d="M168 256h52a44 44 0 0 1 0 88h-52" stroke="url(#c)" stroke-width="30" fill="none" stroke-linecap="round"/>
+  <!-- the ribbon crossing into the A/N stroke -->
+  <path d="M212 300c58-6 74-70 132-70" stroke="#16314c" stroke-width="30" fill="none" stroke-linecap="round"/>
+  <path d="M288 344V262a56 56 0 0 1 112 0v82" stroke="url(#c)" stroke-width="30" fill="none" stroke-linecap="round"/>
+</svg>

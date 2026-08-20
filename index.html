@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
+    <title>Billnaw — Billing &amp; Inventory</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Om Betar ERP">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="billnaw.css">
+</head>
+<body class="industry-electronics print-a4">
+
+<div id="activationOverlay" class="activation-overlay no-print" style="display:none;">
+    <div class="activation-card">
+        <div class="brand-mark" aria-hidden="true" style="margin:0 auto 16px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+        </div>
+        <h2>Activate Om Betar ERP</h2>
+        <p class="act-sub">Enter your activation key to unlock this device. Need a key? Contact your provider.</p>
+        <input type="text" id="actKeyInput" placeholder="e.g. OMB-XXXX-XXXX" autocomplete="off" spellcheck="false">
+        <button type="button" class="btn-success act-btn" onclick="activateKey()">Activate</button>
+        <p id="actMsg" class="act-msg"></p>
+        <p class="act-device">This device ID: <span id="actDeviceId">—</span></p>
+    </div>
+</div>
+
+<div class="sidebar no-print">
+    <div class="sidebar-brand">
+        <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+        </div>
+        <div class="brand-text">
+            <span class="brand-name">Om Betar Bhawan</span>
+            <span class="brand-sub">Enterprise ERP</span>
+        </div>
+    </div>
+
+    <div class="sidebar-header">
+        <div class="setup-toggle" onclick="toggleSetup()">
+            <span>System Setup</span><span id="setupIcon" class="chev">▾</span>
+        </div>
+        <div id="setupDropdownWrap">
+            <label class="field-label">Active Industry</label>
+            <select id="industrySelector" onchange="updateIndustry()">
+                <option value="Electronics" selected>Electronic Shop</option>
+                <option value="Pharmacy">Pharmacy / Medical</option>
+                <option value="Jewelry">Jewelry Shop</option>
+                <option value="Grocery">Grocery / Kirana</option>
+            </select>
+            <button type="button" id="installAppBtn" class="install-btn" onclick="triggerInstall()" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Install App
+            </button>
+        </div>
+    </div>
+
+    <div class="menu-scroll">
+    <div class="menu-item active" onclick="switchView('dashboard', this)">
+        <svg class="mi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        <span>Dashboard</span>
+    </div>
+    <div class="menu-category">Sales (Outward)</div>
+    <div class="menu-item" onclick="switchView('billing', this)">
+        <svg class="mi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+        <span>POS / Billing</span>
+    </div>
+    <div class="menu-item" onclick="switchView('billHistory', this)">
+        <svg class="mi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+        <span>Sales History</span>
+    </div>
+    <div class="menu-item" onclick="switchView('customerLedger', this)">
+        <svg class="mi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>Customer Khata</span>
+    </div>
+    <div class="menu-category">Purchases (Inward)</div>
+    <div class="menu-item" onclick="switchView('purchases', this)">
+        <svg class="mi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.5 4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+        <span>Manual Purchase</span>
+    </div>
+    <div class="menu-item accent-green" onclick="switchView('aiPurchaseView', this)">
+        <svg class="mi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+        <span>AI Invoice Scan</span>
+    </div>
+    <div class="menu-item" onclick="switchView('supplierLedger', this)">
+        <svg class="mi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+        <span>Supplier Khata</span>
+    </div>
+    <div class="menu-category">Inventory</div>
+    <div class="menu-item" onclick="switchView('inventory', this)">
+        <svg class="mi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span>Manage Stock</span>
+    </div>
+    <div class="menu-item accent-violet" onclick="switchView('aiInventoryView', this)">
+        <svg class="mi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17l-1.9-5.1L4.5 10l5.6-1.4L12 3z"/><path d="M19 15l.7 2.1L22 18l-2.3.9L19 21l-.7-2.1L16 18l2.3-.9L19 15z"/></svg>
+        <span>AI Quick Add</span>
+    </div>
+    <div class="menu-item" onclick="switchView('stockStatement', this)">
+        <svg class="mi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+        <span>Stock Ledger</span>
+    </div>
+    <div class="menu-category">Configuration</div>
+    <div class="menu-item" onclick="switchView('settings', this)">
+        <svg class="mi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Settings &amp; Backup</span>
+    </div>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="container">
+        
+        <div id="dashboard" class="view-section active-view no-print">
+            <div class="header-top"><h1 style="margin:0;">Business Command Center</h1><div class="header-stat">Date: <span id="dashDate"></span></div></div>
+            <div class="dash-card-container">
+                <div class="dash-card" style="border-left-color: var(--primary);"><h3>Today's Sales</h3><p class="val">₹<span id="dashTodaySales">0.00</span></p></div>
+                <div class="dash-card" style="border-left-color: var(--success);"><h3>Total Profit (Est)</h3><p class="val">₹<span id="dashProfit">0.00</span></p></div>
+                <div class="dash-card" style="border-left-color: var(--info);"><h3>Gross Margin</h3><p class="val"><span id="dashMargin">0</span>%</p></div>
+                <div class="dash-card" style="border-left-color: #8b5cf6;"><h3>Top Selling Item</h3><p class="val" id="dashTopItem" style="font-size: 1.1em; word-wrap: break-word;">-</p></div>
+                <div class="dash-card" style="border-left-color: var(--danger);"><h3>Customer Dues</h3><p class="val">₹<span id="dashReceivable">0.00</span></p></div>
+                <div class="dash-card" style="border-left-color: var(--warning);"><h3>Supplier Dues</h3><p class="val">₹<span id="dashPayable">0.00</span></p></div>
+            </div>
+            <div class="chart-box">
+                <div class="chart-head"><h3>Sales — last 7 days</h3><span class="chart-total">₹<span id="chartTotal7">0.00</span></span></div>
+                <div id="salesChart" class="sales-chart"></div>
+            </div>
+            <div style="display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap;">
+                <div class="alert-box"><h3 class="alert-title-warning">📉 Low Stock Alerts</h3><ul id="lowStockList" class="alert-list"></ul></div>
+                <div class="alert-box" id="expiryAlertsBox"><h3 class="alert-title-danger">⚠️ Expiring Soon</h3><ul id="expiryList" class="alert-list"></ul></div>
+            </div>
+        </div>
+
+        <div id="billing" class="view-section">
+            <div id="jewelryGlobalBar" class="industry-field jewel-only rates-bar no-print">
+                <strong style="color: var(--theme-jewelry-dark);">Live Rates:</strong>
+                <div class="input-group" style="flex:unset; width:130px;"><label>Gold Rate (₹/g)</label><input type="number" id="globalGoldRate" value="7000" onkeyup="autoFillBilling()"></div>
+                <div class="input-group" style="flex:unset; width:130px;"><label>Silver Rate (₹/g)</label><input type="number" id="globalSilverRate" value="85" onkeyup="autoFillBilling()"></div>
+            </div>
+
+            <div class="header-top screen-header no-print">
+                <div class="invoice-branding">
+                    <img id="displayLogo" src="" alt="Shop Logo">
+                    <div>
+                        <h1 id="displayShopName">Shop Name</h1>
+                        <p id="displayAddress">Shop Address</p>
+                        <p id="displayContact">Mob: <span>-</span></p>
+                        <p id="displayGst" style="font-weight: bold;">GSTIN: <span>-</span></p>
+                    </div>
+                </div>
+                <div class="invoice-meta">
+                    <h2 id="billTitle">Tax Invoice</h2>
+                    <strong>Date:</strong> <span id="currentDate"></span><br>
+                    <strong>Invoice #:</strong> <span id="invoiceNumber">INV-1001</span>
+                </div>
+            </div>
+
+            <div class="print-only print-header-container">
+                <div class="print-tax-invoice-label">Tax Invoice <span class="pull-right">ORIGINAL FOR RECIPIENT</span></div>
+                
+                <div class="print-brand-section" style="flex-direction: column; text-align: center;">
+                    <img id="pDisplayLogo" src="" style="display: none; max-height: 70px; max-width: 180px; object-fit: contain; margin: 0 auto 5px auto;" alt="Shop Logo">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div class="brand-left">
+                            <p class="print-gst-top">GSTIN : <span id="pTopGst"></span></p>
+                            <h1 class="print-shop-title" id="pShopTitle">Shop Name</h1>
+                            <p class="print-bis-title industry-field jewel-only">BIS Authorised Hallmark Gold Available Here</p>
+                            <p class="print-shop-desc" id="pShopDesc">Authorized Retailer & Wholesaler</p>
+                            <p class="print-shop-addr" id="pShopAddr">Address</p>
+                            <p class="print-shop-contact">Contact No. : <span id="pShopPhone"></span></p>
+                        </div>
+                        <div class="brand-right industry-field jewel-only">
+                            <div class="bis-logo-box">▲<br>BIS<br>100% Hallmark</div>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="print-header-grid industry-field standard-only">
+                    <tr>
+                        <td style="width: 50%;">
+                            <div class="grid-lbl">Billed To</div>
+                            <table class="inner-grid">
+                                <tr><td>Name:</td><td id="pCustNameS"></td></tr>
+                                <tr><td>Address:</td><td id="pCustAddressS"></td></tr>
+                                <tr><td>GSTIN:</td><td id="pCustGstS"></td></tr>
+                            </table>
+                        </td>
+                        <td style="width: 50%; vertical-align: top;">
+                            <table class="inner-grid right-grid">
+                                <tr><td>Inv. No.:</td><td id="pInvNumS" style="font-weight:bold;"></td></tr>
+                                <tr><td>Inv. Date:</td><td id="pInvDateS"></td></tr>
+                                <tr><td>Payment Mode:</td><td id="pPayModeS"></td></tr>
+                                <tr><td>Reverse Charge:</td><td>NO</td></tr>
+                                <tr class="industry-field pharm-only" style="border-top: 1px solid #000;"><td>Doctor:</td><td id="pDoctorP"></td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <table class="print-header-grid industry-field jewel-only">
+                    <tr>
+                        <td style="width: 50%;">
+                            <table class="inner-grid">
+                                <tr><td class="j-th">Name:</td><td id="pCustNameJ" style="font-weight:bold;"></td></tr>
+                                <tr><td class="j-th">Address:</td><td id="pCustAddressJ"></td></tr>
+                                <tr><td class="j-th">Contact:</td><td id="pCustPhoneJ"></td></tr>
+                                <tr><td class="j-th">GST No:</td><td id="pCustGstJ"></td></tr>
+                            </table>
+                        </td>
+                        <td style="width: 50%; vertical-align: top;">
+                            <table class="inner-grid right-grid">
+                                <tr><td class="j-th">Invoice No:</td><td id="pInvNumJ" style="font-weight:bold;"></td></tr>
+                                <tr><td class="j-th">Date:</td><td id="pInvDateJ"></td></tr>
+                                <tr><td colspan="2" style="border-top: 1px solid #000; height: 2px;"></td></tr>
+                                <tr><td class="j-th">Prepared By:</td><td>Admin</td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="form-group no-print customer-input-box">
+                <div class="input-group" style="flex: 2;"><label>Customer Name:</label><input type="text" id="customerName" list="customerList" onchange="autoFillCustomer()"><datalist id="customerList"></datalist></div>
+                <div class="input-group"><label>Phone Number:</label><input type="text" id="customerPhone" value="+91 "></div>
+                <div class="input-group" style="flex: 2;"><label>Address:</label><input type="text" id="customerAddress"></div>
+                <div class="input-group"><label>Customer GSTIN:</label><input type="text" id="customerGstin"></div>
+                <div class="input-group industry-field pharm-only"><label>Prescribing Doctor:</label><input type="text" id="doctorName" placeholder="Dr. Name"></div>
+            </div>
+
+            <div class="form-group no-print product-entry-box">
+                <div class="scanner-notice" style="margin-bottom: 15px; width: 100%;">
+                    <button type="button" id="startScannerBtn" class="btn-info" onclick="startCameraScanner()" style="width: 100%; margin-bottom: 10px; border-radius: 8px;">📷 Tap to Scan Barcode / QR with Camera</button>
+                    <button type="button" id="stopScannerBtn" class="btn-danger" onclick="stopCameraScanner()" style="width: 100%; margin-bottom: 10px; border-radius: 8px; display: none;">🛑 Stop Camera Scanner</button>
+                    <div id="qr-reader" style="width: 100%; max-width: 400px; display: none; margin: auto; border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-md);"></div>
+                </div>
+                
+                <div class="input-group" style="flex: 100%;"><label>Product / Item Description</label><input type="text" id="billItemName" list="inventoryList" onchange="autoFillBilling()"><datalist id="inventoryList"></datalist></div>
+                
+                <div class="input-group industry-field jewel-only"><label>HUID/Barcode</label><input type="text" id="billHuid"></div>
+                <div class="input-group industry-field jewel-only"><label>Purity</label><input type="text" id="billPurity" placeholder="22K"></div>
+                <div class="input-group industry-field jewel-only"><label>Gross Wt(g)</label><input type="number" id="billGrossWt" onkeyup="calcNetWt()"></div>
+                <div class="input-group industry-field jewel-only"><label>Stone Wt(g)</label><input type="number" id="billStoneWt" onkeyup="calcNetWt()"></div>
+                <div class="input-group industry-field jewel-only"><label>Net Wt(g)</label><input type="number" id="billNetWt" readonly style="background:#e2e8f0;"></div>
+                <div class="input-group industry-field jewel-only" style="max-width: 80px;"><label>MC Type</label><select id="billMakingType"><option value="₹">Flat (₹)</option><option value="%">Percent (%)</option></select></div>
+                <div class="input-group industry-field jewel-only"><label>Making Value</label><input type="number" id="billMaking" placeholder="0"></div>
+                
+                <div class="input-group industry-field pharm-only"><label>Batch</label><input type="text" id="billBatch"></div>
+                <div class="input-group industry-field pharm-only"><label>Expiry</label><input type="text" id="billExpiry"></div>
+                
+                <div class="input-group industry-field standard-only"><label>HSN Code</label><input type="text" id="billHsn" onchange="autoFillByHsn()"></div>
+                <div class="input-group industry-field standard-only" style="max-width: 80px;"><label>Qty</label><input type="number" id="billQty" value="1" onkeyup="generateImeiBoxes()" onchange="generateImeiBoxes()"></div>
+                <div class="input-group"><label id="rateLabel">Rate (₹) <small style="color:var(--text-muted);">(Excl. GST)</small></label><input type="number" id="billRate" placeholder="0.00"></div>
+                <div class="input-group industry-field standard-only" style="max-width: 80px;"><label>Disc Type</label><select id="billDiscType"><option value="₹">Flat (₹)</option><option value="%">Percent (%)</option></select></div>
+                <div class="input-group industry-field standard-only" style="max-width: 90px;"><label>Disc Value</label><input type="number" id="billItemDisc" placeholder="0.00"></div>
+                <div class="input-group" style="max-width: 80px;"><label>GST %</label><select id="billGst"><option value="0">0%</option><option value="3">3%</option><option value="5">5%</option><option value="12">12%</option><option value="18" selected>18%</option><option value="28">28%</option></select></div>
+                
+                <div class="input-group industry-field elec-only" id="wrapSerial" style="flex: 100%; border-top: 1px dashed #cbd5e1; padding-top: 10px; margin-top: 10px;">
+                    <label style="color: var(--primary);">Enter IMEI / Serial Numbers for each quantity:</label>
+                    <div id="imeiContainer" class="imei-grid"><input type="text" class="imei-input" placeholder="IMEI / Serial 1"></div>
+                </div>
+
+                <div style="flex: 100%; text-align: right; margin-top: 10px;"><button type="button" onclick="addInvoiceItem()">+ Add Item to Bill</button></div>
+            </div>
+
+            <table id="invoiceTable" class="print-data-table"><thead id="invoiceHead"></thead><tbody id="invoiceBody"></tbody></table>
+
+            <div class="print-only print-footer-grid">
+                <table class="industry-field standard-only footer-table" style="width:100%;">
+                    <tr>
+                        <td style="width: 60%; vertical-align: top; border-right: 1px solid #000;">
+                            <div style="padding: 5px;">
+                                <strong>Our Bank Details</strong>
+                                <table class="inner-grid" style="margin-top: 5px;">
+                                    <tr><td>Bank Name:</td><td id="pBankNameS"></td></tr>
+                                    <tr><td>Account No:</td><td id="pBankAccS"></td></tr>
+                                    <tr><td>IFSC Code:</td><td id="pBankIfscS"></td></tr>
+                                </table>
+                                <div style="margin-top: 15px;"><strong>Invoice Total in Word</strong><br><span id="pAmountWordsS"></span></div>
+                            </div>
+                        </td>
+                        <td style="width: 40%; vertical-align: top; padding: 0;">
+                            <table class="inner-grid text-right-grid" style="width: 100%;">
+                                <tr><td style="background: #f0f0f0; font-weight: bold; text-align: left;">SUMMARY</td><td style="background: #f0f0f0; font-weight: bold;">AMOUNT</td></tr>
+                                <tr><td style="text-align: right;">Total Taxable:</td><td id="pTaxableS">0.00</td></tr>
+                                <tr><td style="text-align: right;">CGST Amt:</td><td id="pCgstS">0.00</td></tr>
+                                <tr><td style="text-align: right;">SGST Amt:</td><td id="pSgstS">0.00</td></tr>
+                                <tr><td style="text-align: right;">Round off (+/-):</td><td>0.00</td></tr>
+                                <tr><td style="text-align: right; font-size:12px; font-weight:bold;">Total Amount:</td><td id="pGrandS" style="font-size:12px; font-weight:bold;">0.00</td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <div class="industry-field standard-only print-declaration">
+                    <div class="decl-left">
+                        <strong>Declaration</strong><br>1. Subject to local jurisdiction<br>2. Terms & conditions are subject to our trade policy<br>E. & O.E.
+                    </div>
+                    <div class="decl-right">For, <span id="pShopSignName">Shop</span><br><br><br>Authorised Signatory</div>
+                </div>
+
+                <div class="industry-field jewel-only jewel-footer-wrap">
+                    <div class="jewel-footer-left">
+                        <div class="in-word-box"><strong>In Word:</strong> <span id="pAmountWordsJ"></span></div>
+                        <div class="bank-box">
+                            <strong>Bank Details:</strong><br><span id="pBankNameJ"></span><br>A/C: <span id="pBankAccJ"></span><br>IFSC: <span id="pBankIfscJ"></span>
+                        </div>
+                        <div class="payment-details-box">
+                            <strong>Payment Details</strong>
+                            <table class="print-data-table" style="margin-bottom: 0;">
+                                <tr><th>DATE</th><th>PAY. METHOD</th><th>AMOUNT</th></tr>
+                                <tr><td id="pPayDateJ"></td><td>OLD GOLD</td><td id="pOldGoldJ">0</td></tr>
+                                <tr><td></td><td>CASH/UPI</td><td id="pPaidJ">0</td></tr>
+                            </table>
+                        </div>
+                        <div class="sig-box">CUSTOMER SIGNATURE</div>
+                    </div>
+                    <div class="jewel-footer-right">
+                        <table class="inner-grid text-right-grid math-grid" style="width: 100%;">
+                            <tr><td class="j-th">SubTotal:</td><td id="pSubTotalJ">0.00</td></tr>
+                            <tr><td class="j-th">-Disc:</td><td id="pDiscJ">0.00</td></tr>
+                            <tr><td class="j-th">Making Charge:</td><td id="pMcJ">0.00</td></tr>
+                            <tr><td class="j-th">Hallmark Chrg.:</td><td id="pHallmarkJ">0.00</td></tr>
+                            <tr><td class="j-th">Grand Total:</td><td id="pTaxableTotalJ">0.00</td></tr>
+                            <tr><td class="j-th">CGST:</td><td id="pCgstJ">0.00</td></tr>
+                            <tr><td class="j-th">SGST:</td><td id="pSgstJ">0.00</td></tr>
+                            <tr><td class="j-th">Net Total:</td><td id="pGrandJ">0.00</td></tr>
+                            <tr><td class="j-th">-Paid:</td><td id="pTotalPaidJ">0.00</td></tr>
+                            <tr><td class="j-th">Balance:</td><td id="pBalanceJ">0.00</td></tr>
+                        </table>
+                        <div class="sig-box" style="margin-top: auto; text-align: right; border-top: 1px solid #000;">AUTHORISED SIGNATURE</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pUpiQrWrap" class="print-upi-qr">
+                <div id="pUpiQrBox"></div>
+                <div class="print-upi-cap"><strong>Scan to Pay (UPI)</strong><br>Pay using any UPI app</div>
+            </div>
+
+            <div class="clearfix no-print">
+                <div class="terms-box"><strong>Terms & Conditions:</strong><div id="displayTerms" style="margin-top: 5px;"></div></div>
+                <div class="totals-box">
+                    <div class="industry-field jewel-only global-charges">
+                        <div class="flex-bw"><span>Hallmark/Other (₹):</span> <input type="number" id="billOtherCharge" value="0" class="mini-input" onkeyup="renderInvoiceTable()"></div>
+                    </div>
+                    <div class="flex-bw" style="margin-bottom: 8px;"><span>Subtotal (Taxable):</span> <span>₹<span id="subtotal">0.00</span></span></div>
+                    <div class="flex-bw" style="margin-bottom: 8px;"><span>Total GST:</span> <span>₹<span id="totalGst">0.00</span></span></div>
+                    <div class="grand-total flex-bw"><span>Net Payable:</span> <span>₹<span id="grandTotal">0.00</span></span></div>
+                    
+                    <div class="payment-calc-box">
+                        <div class="input-group industry-field jewel-only" style="margin-bottom: 5px;">
+                            <label style="color:var(--theme-jewelry-dark);">Old Gold Exchange (₹):</label>
+                            <input type="number" id="billOldGold" placeholder="0.00" onkeyup="calculateDue()" class="exch-input">
+                        </div>
+                        <div class="input-group" style="margin-bottom: 5px;">
+                            <label>Amount Paid Now (Cash/UPI):</label>
+                            <input type="number" id="billAmountPaid" placeholder="Leave empty for credit" onkeyup="calculateDue()" class="paid-input">
+                        </div>
+                        <div class="balance-due-text">Balance Due: ₹<span id="billBalanceDue">0.00</span></div>
+                    </div>
+                    <div id="upiQrWrap" class="upi-qr-wrap" style="display:none;">
+                        <div id="upiQrBox" class="upi-qr-box"></div>
+                        <div class="upi-qr-text"><strong>Scan &amp; Pay</strong><span id="upiQrAmt">₹0.00</span><small>Any UPI app</small></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group action-buttons no-print">
+                <button type="button" class="btn-success" onclick="finalizeAndPrintInvoice()">💾 Save & Print Invoice</button>
+                <button type="button" class="btn-warning" onclick="clearBillingCart()">🗑️ Clear Draft</button>
+            </div>
+        </div>
+
+        <div id="aiPurchaseView" class="view-section no-print">
+            <div class="header-top"><h1 style="margin:0; color: var(--success-hover);">🧠 AI Invoice Processor</h1></div>
+            <p style="color: var(--text-muted); margin-top: -10px; margin-bottom: 20px;">Upload a high-quality supplier invoice. The AI will extract global details and isolate individual products, variable GST rates, and bulk serial numbers.</p>
+            
+            <div style="background: rgba(16, 185, 129, 0.05); border: 2px dashed var(--success); border-radius: var(--radius-md); padding: 30px; text-align: center; margin-bottom: 30px;">
+                <input type="file" id="aiInvoiceInput" accept="image/*" style="display: block; margin: 0 auto 20px auto; padding: 10px; background: white;">
+                <button type="button" onclick="processPurchaseInvoice()" class="btn-success" style="font-size: 1.1em; padding: 15px 30px;">🔍 Run AI Analysis</button>
+                <div id="aiInvoiceLoading" style="display:none; color: var(--success); font-weight: bold; margin-top: 15px; animation: pulse 1.5s infinite;">Reading Document... This may take a few seconds ⏳</div>
+            </div>
+
+            <div id="aiScannedItemsContainer" style="display:none; flex: 100%; margin-bottom: 20px; border: 1px solid var(--primary); border-radius: 8px; overflow: hidden; flex-direction: column;">
+                <div style="background: var(--primary); color: white; padding: 10px 15px; font-weight: bold; display: flex; justify-content: space-between;">
+                    <span>🤖 AI Extracted Line Items</span>
+                    <button type="button" onclick="document.getElementById('aiScannedItemsContainer').style.display='none'" style="background:transparent; padding:0; height:auto; box-shadow:none;">✖</button>
+                </div>
+                <div style="padding: 15px; background: #f8fafc;">
+                    <p style="margin-top: 0; font-size: 0.9em; color: var(--text-muted);">Click <strong>Load</strong> to push an item into the staging form below for final review.</p>
+                    <table style="margin-bottom: 0;">
+                        <thead><tr><th>Item Name (Best Guess)</th><th>Serial/Batch</th><th>HSN</th><th>GST%</th><th>Qty</th><th>Rate</th><th>Action</th></tr></thead>
+                        <tbody id="aiScannedItemsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-group inventory-entry-box" id="aiPurchaseStagingForm" style="opacity: 0.5; pointer-events: none;">
+                <div style="flex:100%; border-bottom: 1px solid var(--border); margin-bottom:10px; padding-bottom:5px;"><strong>Staging Area (Review Before Saving)</strong></div>
+                <div class="input-group" style="flex: 2;"><label>Supplier Name</label><input type="text" id="aiPurVendor" list="vendorList"></div>
+                <div class="input-group"><label>Bill / Inv No.</label><input type="text" id="aiPurBillNo"></div>
+                <div class="input-group" style="flex: 2;"><label>Item Name</label><input type="text" id="aiPurItem"></div>
+                
+                <div class="input-group"><label>Batch/Serial(s)</label><input type="text" id="aiPurBatch" placeholder="Comma separated"></div>
+                <div class="input-group"><label>HSN Code</label><input type="text" id="aiPurHsn"></div>
+                <div class="input-group"><label>GST %</label><input type="number" id="aiPurGst"></div>
+                
+                <div class="input-group"><label>Qty Received</label><input type="number" id="aiPurQty"></div>
+                <div class="input-group"><label>Cost (₹)</label><input type="number" id="aiPurCost"></div>
+                <div class="input-group"><label>Total Amount</label><input type="number" id="aiPurTotal"></div>
+                <div class="input-group"><label>Amount Paid</label><input type="number" id="aiPurPaid" value="0"></div>
+                
+                <div style="flex: 100%; text-align:right;"><button type="button" onclick="saveAIPurchaseEntry()" class="btn-success">📥 Confirm & Log to Inventory</button></div>
+            </div>
+        </div>
+
+        <div id="purchases" class="view-section no-print">
+            <div class="header-top"><h1 style="margin:0;">Manual Inward Stock</h1></div>
+            <div class="form-group inventory-entry-box">
+                <div class="input-group" style="flex: 2;"><label>Supplier Name</label><input type="text" id="purVendor" list="vendorList"><datalist id="vendorList"></datalist></div>
+                <div class="input-group"><label>Bill No.</label><input type="text" id="purBillNo"></div>
+                <div class="input-group" style="flex: 2;"><label>Item Name</label><input type="text" id="purItem" list="inventoryList"></div>
+                <div class="input-group"><label>Batch/SKU</label><input type="text" id="purBatch"></div>
+                <div class="input-group"><label>HSN Code</label><input type="text" id="purHsn"></div>
+                <div class="input-group" style="max-width:90px;"><label>GST %</label><select id="purGst"><option value="0">0%</option><option value="5">5%</option><option value="12" selected>12%</option><option value="18">18%</option><option value="28">28%</option></select></div>
+                <div class="input-group"><label>Qty Received</label><input type="number" id="purQty"></div>
+                <div class="input-group"><label>Cost (₹)</label><input type="number" id="purCost" placeholder="Per Unit"></div>
+                <div class="input-group"><label>Total Bill Amount</label><input type="number" id="purTotal"></div>
+                <div class="input-group"><label>Amount Paid</label><input type="number" id="purPaid"></div>
+                <div style="flex: 100%; text-align:right;"><button type="button" onclick="savePurchaseEntry()">📥 Log Purchase</button></div>
+            </div>
+            <h3>Recent Purchases</h3>
+            <table><thead><tr><th>Date</th><th>Vendor</th><th>Bill No.</th><th>Item</th><th>Qty</th><th>Total</th><th>Status</th></tr></thead><tbody id="purchaseHistoryBody"></tbody></table>
+        </div>
+
+        <div id="supplierLedger" class="view-section no-print">
+            <div class="header-top"><h1 style="margin:0;">Supplier Khata</h1><div class="header-stat warning">Total Payable: ₹<span id="globalPayable">0.00</span></div></div>
+            <table><thead><tr><th>Supplier Name</th><th>Total Billed (₹)</th><th>Total Paid (₹)</th><th>Pending (₹)</th><th style="width: 150px;">Action</th></tr></thead><tbody id="ledgerSupplierBody"></tbody></table>
+        </div>
+
+        <div id="billHistory" class="view-section no-print">
+            <div class="header-top"><h1 style="margin:0;">Sales History</h1><div class="header-stat">Total Sales: ₹<span id="historyTotalSales">0.00</span></div></div>
+            <div style="margin-bottom: 10px; text-align: right;"><button type="button" class="btn-success" onclick="exportToCSV('sales')">📊 Export</button></div>
+            <table><thead><tr><th>Date</th><th>Invoice No.</th><th>Customer</th><th>Net Payable (₹)</th><th>Status</th><th style="width: 140px;">Action</th></tr></thead><tbody id="historyBody"></tbody></table>
+        </div>
+
+        <div id="customerLedger" class="view-section no-print">
+            <div class="header-top"><h1 style="margin:0;">Customer Khata</h1><div class="header-stat danger">Total Outstanding: ₹<span id="globalOutstanding">0.00</span></div></div>
+            <table><thead><tr><th>Customer Name</th><th>Total Billed (₹)</th><th>Total Received (₹)</th><th>Outstanding (₹)</th><th style="width: 150px;">Action</th></tr></thead><tbody id="ledgerCustomerBody"></tbody></table>
+        </div>
+
+        <div id="aiInventoryView" class="view-section no-print">
+            <div class="header-top"><h1 style="margin:0; color: #8b5cf6;">✨ AI Quick Stock Builder</h1></div>
+            <p style="color: var(--text-muted); margin-top: -10px; margin-bottom: 20px;">Take a snapshot of a single product label or box. The AI will extract the Name, MRP, Expiry, and Batch.</p>
+            
+            <div style="background: rgba(139, 92, 246, 0.05); border: 2px dashed #8b5cf6; border-radius: var(--radius-md); padding: 30px; text-align: center; margin-bottom: 30px;">
+                <input type="file" id="aiImageInput" accept="image/*" style="display: block; margin: 0 auto 20px auto; padding: 10px; background: white;">
+                <button type="button" onclick="processAIImage()" style="background: #8b5cf6; font-size: 1.1em; padding: 15px 30px;">🧠 Extract Data</button>
+                <div id="aiLoadingStatus" style="display:none; color: #8b5cf6; font-weight: bold; margin-top: 15px; animation: pulse 1.5s infinite;">Analyzing Label... ⏳</div>
+            </div>
+
+            <div class="form-group inventory-entry-box">
+                <div style="flex:100%; border-bottom: 1px solid var(--border); margin-bottom:10px; padding-bottom:5px;"><strong>Review & Save to Inventory</strong></div>
+                <div class="input-group" style="flex: 2; min-width:150px;"><label>Item Name</label><input type="text" id="aiInvName"></div>
+                <div class="input-group"><label>Batch/SKU</label><input type="text" id="aiInvBatch"></div>
+                <div class="input-group"><label>Expiry</label><input type="text" id="aiInvExpiry"></div>
+                <div class="input-group"><label>Stock Qty</label><input type="number" id="aiInvQty" value="1"></div>
+                <div class="input-group" style="border-left: 2px dashed var(--border); padding-left: 10px;"><label>Estimated Cost (₹)</label><input type="number" id="aiInvCost" style="background: rgba(254, 252, 232, 0.8);"></div>
+                <div class="input-group"><label>Retail MRP (₹)</label><input type="number" id="aiInvPrice"></div>
+                <div style="flex: 100%; text-align:right;"><button type="button" onclick="saveAIInventoryItem()" style="background:#8b5cf6;">+ Confirm & Add to Stock</button></div>
+            </div>
+        </div>
+
+        <div id="inventory" class="view-section no-print">
+            <div class="header-top"><h1 style="margin:0;">Inventory Management</h1><div class="header-stat">Total Products: <span id="totalItems">0</span></div></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                <input type="text" id="invSearchBox" placeholder="🔍 Search..." onkeyup="filterInventory()" class="search-input">
+                <button type="button" class="btn-success" onclick="exportToCSV('inventory')">📊 Export Stock</button>
+            </div>
+
+            <div class="form-group inventory-entry-box">
+                <div class="input-group" style="flex: 2; min-width:150px;"><label>Item Name</label><input type="text" id="invName"></div>
+                <div class="input-group"><label>Batch/SKU</label><input type="text" id="invBatch"></div>
+                <div class="input-group industry-field standard-only"><label>Barcode/HSN</label><input type="text" id="invHsn"></div>
+                <div class="input-group industry-field standard-only"><label>GST %</label><select id="invGst"><option value="0">0%</option><option value="5">5%</option><option value="12" selected>12%</option><option value="18">18%</option><option value="28">28%</option></select></div>
+                <div class="input-group industry-field pharm-only"><label>Expiry</label><input type="text" id="invExpiry"></div>
+                <div class="input-group industry-field jewel-only"><label>Net Wt (g)</label><input type="number" id="invWeight"></div>
+                <div class="input-group industry-field jewel-only"><label>Purity</label><input type="text" id="invPurity"></div>
+                <div class="input-group industry-field jewel-only"><label>Making (₹)</label><input type="number" id="invMaking"></div>
+                <div class="input-group"><label>Stock Qty</label><input type="number" id="invQty"></div>
+                <div class="input-group" style="border-left: 2px dashed var(--border); padding-left: 10px;"><label>Cost (₹)</label><input type="number" id="invCost" style="background: rgba(254, 252, 232, 0.8);"></div>
+                <div class="input-group"><label>Retail Price (₹)</label><input type="number" id="invPrice"></div>
+                <div style="flex: 100%; text-align:right;">
+                    <button type="button" id="invActionBtn" onclick="addOrUpdateInventoryItem()">+ Quick Add</button>
+                    <button type="button" id="invCancelBtn" class="btn-danger" style="display:none;" onclick="cancelInvEdit()">Cancel</button>
+                </div>
+            </div>
+            <table id="inventoryTableEl"><thead id="invHead"></thead><tbody id="inventoryBody"></tbody></table>
+        </div>
+
+        <div id="stockStatement" class="view-section no-print">
+            <div class="header-top"><h1 id="ledgerTitle" style="margin:0;">Stock Statement</h1><div class="header-stat">Closing Value: ₹<span id="ledgerTotalValue">0.00</span></div></div>
+            <div style="display:flex; gap: 15px; margin-bottom: 20px; align-items: flex-end; background: rgba(255,255,255,0.5); padding: 15px; border-radius: var(--radius-sm); border: 1px solid var(--border); flex-wrap: wrap;">
+                <div class="input-group" style="flex:unset; width: 160px;"><label>From</label><input type="date" id="stockFilterFrom"></div>
+                <div class="input-group" style="flex:unset; width: 160px;"><label>To</label><input type="date" id="stockFilterTo"></div>
+                <button type="button" class="btn-info" onclick="renderStockStatement()">🔍 Filter</button>
+                <button type="button" style="background: var(--text-muted); color: white;" onclick="document.getElementById('stockFilterFrom').value=''; document.getElementById('stockFilterTo').value=''; renderStockStatement();">Reset</button>
+            </div>
+            <table><thead><tr><th>Item Name</th><th>Batch/Code</th><th>Received</th><th>Issued</th><th style="background-color: var(--info-light);">Stock</th><th>Cost Value</th></tr></thead><tbody id="ledgerBody"></tbody></table>
+        </div>
+
+        <div id="settings" class="view-section no-print">
+            <div class="header-top"><h1 style="margin:0;">System Settings</h1></div>
+            <div class="settings-panel">
+                <div class="form-group"><div class="input-group" style="flex: 2;"><label>Business Name</label><input type="text" id="setShopName"></div><div class="input-group"><label>Phone Number</label><input type="text" id="setPhone"></div></div>
+                <div class="form-group"><div class="input-group"><label>Full Address</label><input type="text" id="setAddress"></div></div>
+                <div class="form-group"><div class="input-group"><label>GSTIN</label><input type="text" id="setGst"></div><div class="input-group"><label>License Number</label><input type="text" id="setLicense"></div></div>
+                
+                <h3 style="margin-top: 20px; color: var(--dark); border-top: 1px solid var(--border); padding-top: 20px;">Bank Details</h3>
+                <div class="form-group"><div class="input-group" style="flex: 2;"><label>Bank Name</label><input type="text" id="setBankName"></div><div class="input-group"><label>Account No.</label><input type="text" id="setBankAcc"></div><div class="input-group"><label>IFSC</label><input type="text" id="setBankIfsc"></div></div>
+                
+                <div class="form-group">
+                    <div class="input-group" style="flex: 2;"><label>Terms & Conditions</label><textarea id="setTerms" rows="2"></textarea></div>
+                    <div class="input-group" style="flex: 1;"><label>Print Format</label><select id="setPrintFormat" onchange="togglePrintFormat()"><option value="a4">A4 Print</option><option value="thermal">80mm Thermal</option></select></div>
+                </div>
+                
+                <div class="form-group" style="align-items: center; border: 1px dashed var(--border); padding: 15px; border-radius: 8px;">
+                    <div class="input-group" style="flex: 2;"><label>Upload Shop Logo</label><input type="file" id="setLogoFile" accept="image/*" onchange="previewAndSaveLogo(event)"></div>
+                    <div class="input-group" style="flex: unset; width: 150px; text-align: center;"><img id="settingsLogoPreview" src="" style="max-height: 55px; display: none; border: 1px solid #cbd5e1; background: white; padding: 5px; border-radius: 4px;"></div>
+                </div>
+
+                <h3 style="margin-top: 20px; color: var(--dark); border-top: 1px solid var(--border); padding-top: 20px;">AI &amp; Cloud</h3>
+                <div class="form-group">
+                    <div class="input-group"><label>AI Engine (picture scan)</label>
+                        <select id="setAiEngine" onchange="toggleGeminiFields()">
+                            <option value="tesseract">Offline OCR (Tesseract) — free, basic</option>
+                            <option value="gemini">Google Gemini — smart, needs key + internet</option>
+                        </select>
+                    </div>
+                    <div class="input-group"><label>Cloud Provider (sync)</label>
+                        <select id="setCloudProvider" onchange="toggleProviderFields()">
+                            <option value="sheets">Google Sheet only</option>
+                            <option value="firebase">Firebase only</option>
+                            <option value="both">Both (Sheet + Firebase)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" id="geminiFieldsBox" style="display:none;">
+                    <div class="input-group" style="flex:2;"><label>Gemini API Key</label><input type="password" id="setGeminiKey" placeholder="AIza..." autocomplete="off"></div>
+                    <div class="input-group"><label>Gemini Model</label><input type="text" id="setGeminiModel" placeholder="gemini-2.5-flash"></div>
+                    <div class="input-group" style="flex:unset; align-self:flex-end;"><button type="button" class="btn-info" onclick="testGeminiKey()">Test Key</button></div>
+                </div>
+                <div id="sheetUrlBox" class="form-group">
+                    <div class="input-group" style="flex:2;"><label>Google Sheet Web App URL (data + licenses)</label><input type="text" id="setCloudUrl" placeholder="https://script.google.com/macros/s/AKfyc.../exec"></div>
+                    <div class="input-group" style="flex:unset; align-self:flex-end;"><button type="button" class="btn-info" onclick="testCloudConnection()">Test Sheet</button></div>
+                </div>
+                <div id="firebaseFieldsBox" class="form-group" style="display:none;">
+                    <div class="input-group" style="flex:100%;"><label>Firebase Config (paste the config object from Firebase → Project settings → Web app)</label><textarea id="setFirebaseConfig" rows="4" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "...", "appId": "..." }'></textarea></div>
+                    <div class="input-group" style="flex:unset; align-self:flex-end;"><button type="button" class="btn-info" onclick="testFirebase()">Test Firebase</button></div>
+                </div>
+                <div class="form-group" style="align-items:center;">
+                    <button type="button" class="btn-success" onclick="saveAiCloudSettings(); saveExtraSettings();">Save AI &amp; Cloud</button>
+                    <div class="divider-line"></div>
+                    <button type="button" class="btn-warning" onclick="syncAllToCloud(false)">⬆️ Sync Now</button>
+                    <button type="button" style="background:#475569;color:#fff;" onclick="pullFromCloud()">⬇️ Pull from Cloud</button>
+                </div>
+
+                <h3 style="margin-top: 20px; color: var(--dark); border-top: 1px solid var(--border); padding-top: 20px;">UPI Payments (Scan-to-Pay QR on invoice)</h3>
+                <div class="form-group">
+                    <div class="input-group" style="flex:2;"><label>UPI ID</label><input type="text" id="setUpiId" placeholder="yourname@oksbi  /  9876543210@ybl" autocomplete="off"></div>
+                    <div class="input-group" style="flex:2;"><label>Payee Name (shown in UPI app)</label><input type="text" id="setUpiName" placeholder="Om Betar Bhawan"></div>
+                    <div class="input-group"><label>Show QR on Invoice</label><select id="setShowUpiQr"><option value="yes">Yes</option><option value="no">No</option></select></div>
+                </div>
+                <div class="form-group" style="align-items:center;">
+                    <button type="button" class="btn-success" onclick="saveExtraSettings()">Save UPI</button>
+                    <button type="button" class="btn-info" onclick="testUpiId()">Test UPI ID</button>
+                </div>
+                <div id="upiTestBox" class="upi-test-box" style="display:none;"></div>
+
+                <h3 style="margin-top: 20px; color: var(--dark); border-top: 1px solid var(--border); padding-top: 20px;">Activation &amp; License</h3>
+                <div class="form-group" style="align-items:center;">
+                    <div class="input-group" style="flex:2;"><label>License</label><div id="licenseStatusText" class="license-badge">Status: —</div></div>
+                    <div class="input-group" style="flex:unset; align-self:flex-end;"><button type="button" class="btn-danger" onclick="deactivateLicense()">Change / Remove Key</button></div>
+                </div>
+
+                <div class="data-management-section">
+                    <h3 style="margin-top: 0; color: var(--dark);">Data Management</h3>
+                    <div class="form-group" style="align-items: center;">
+                        <button type="button" class="btn-warning" onclick="exportData()">⬇️ Backup</button>
+                        <div class="divider-line"></div>
+                        <div class="input-group" style="flex: unset;"><input type="file" id="restoreFile" accept=".json" style="padding: 7px;"></div>
+                        <button type="button" style="background-color: #475569; color: white;" onclick="importData()">⬆️ Restore</button>
+                        <div style="flex: 1; text-align: right;"><button type="button" class="btn-danger" style="margin-left: auto;" onclick="clearSystemData()">⚠️ Wipe Data</button></div>
+                    </div>
+                </div>
+                <div style="text-align: right; margin-top:20px;"><button type="button" class="btn-success" onclick="saveSettings()">Save Configuration</button></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<button type="button" id="checkoutFab" class="checkout-fab no-print" onclick="openCheckout()" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+    <span class="cf-label">Checkout</span>
+    <strong id="fabTotal">₹0.00</strong>
+</button>
+
+<div id="checkoutModal" class="modal-overlay no-print" style="display:none;" onclick="if(event.target===this)closeCheckout()">
+    <div class="modal-card">
+        <div class="modal-head">
+            <div><h2>Checkout</h2><span id="coInvNo" class="co-inv">INV-</span></div>
+            <button type="button" class="modal-close" onclick="closeCheckout()" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="checkoutItems" class="co-items"></div>
+            <div class="co-totals">
+                <div class="co-row"><span>Subtotal (Taxable)</span><span>₹<span id="coSubtotal">0.00</span></span></div>
+                <div class="co-row"><span>Total GST</span><span>₹<span id="coGst">0.00</span></span></div>
+                <div class="co-row co-grand"><span>Net Payable</span><span>₹<span id="coGrand">0.00</span></span></div>
+            </div>
+            <div id="coUpiQrWrap" class="co-qr" style="display:none;">
+                <div id="coUpiQrBox" class="upi-qr-box"></div>
+                <div class="co-qr-cap"><strong>Scan &amp; Pay</strong><small>GPay · PhonePe · Paytm</small></div>
+            </div>
+            <div class="co-field">
+                <label for="coPaid">Amount Paid Now (Cash / UPI)</label>
+                <input type="number" id="coPaid" placeholder="0.00" oninput="checkoutPaidChanged()">
+            </div>
+            <div class="co-balance">Balance Due: <strong>₹<span id="coBalance">0.00</span></strong></div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn-warning" onclick="closeCheckout()">Back</button>
+            <button type="button" class="btn-success" onclick="checkoutSavePrint()">💾 Save &amp; Print</button>
+        </div>
+    </div>
+</div>
+
+<nav class="bottom-nav no-print" id="bottomNav">
+    <button type="button" class="bn-item active" data-view="dashboard" onclick="navFromBottom('dashboard', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        <span>Home</span>
+    </button>
+    <button type="button" class="bn-item" data-view="inventory" onclick="navFromBottom('inventory', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span>Stock</span>
+    </button>
+    <button type="button" class="bn-item bn-fab" data-view="billing" onclick="navFromBottom('billing', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+        <span>Bill</span>
+    </button>
+    <button type="button" class="bn-item" data-view="billHistory" onclick="navFromBottom('billHistory', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+        <span>Sales</span>
+    </button>
+    <button type="button" class="bn-item" data-view="settings" onclick="navFromBottom('settings', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>More</span>
+    </button>
+</nav>
+
+<script src="app.js"></script>
+<script src="billnaw.js"></script>
+</body>
+</html>
