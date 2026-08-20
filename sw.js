@@ -6,7 +6,7 @@
      - Everything else (e.g. Google Sheets sync POST): network only, never cached
    Bump CACHE_VERSION whenever you change app shell files to force an update.
    ===================================================================== */
-const CACHE_VERSION = 'billnow-erp-v19';
+const CACHE_VERSION = 'billnow-erp-v20';
 // Vendor libraries are versioned by URL, so they survive a shell cache bump.
 const VENDOR_CACHE = 'billnow-vendor-v1';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
